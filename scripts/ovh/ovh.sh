@@ -16,7 +16,7 @@ EXPECT_SCRIPT_PATH="/tmp/script"
 IGNORE_CHECK=false
 
 # Remote scripts URI root
-export KS_URI_ROOT="https://gitlab.calaresu.com/share/kimsufi-post-install/raw/master/"
+export KS_URI_ROOT="https://raw.githubusercontent.com/lcalaresu/ovh-server/refs/heads/main/"
 
 # OS Release file
 OSR_FILE="/etc/os-release"
