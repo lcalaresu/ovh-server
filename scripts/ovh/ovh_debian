@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+#
+# Post-installation Configuration Scripts
+#
+# OVH-specific actions for Debian based hosts
+# - Fix locals
+# - Set hostname
+
+# -------------------------------------
+# Fix the timezone settings
+# -------------------------------------
+fix_timezone () {
+  echo "Etc/CET" > /etc/timezone
+  dpkg-reconfigure -f noninteractive tzdata
+  if (! timedatectl status); then
+    echo "Error while setting the timezone" 1>&2
+    exit
+  fi
+}
+
+# -------------------------------------
+# Fix the locales settings
+# -------------------------------------
+fix_locales () {
+  sed -i -e 's/^en_US/en_GB/' /etc/locale.gen
+  sed -i -e 's/en_US/en_GB/' /etc/default/locale
+  sed -i -e 's/# LANG/LANG/' /etc/default/locale
+  dpkg-reconfigure --frontend=noninteractive locales
+  echo "KEYMAP=fr" > /etc/vconsole.conf
+}
+
+# -------------------------------------
+# Change the host name related files
+# -------------------------------------
+set_hostname () {
+  hostnamectl set-hostname mail.clrs.eu
+  sysctl -e kernel.hostname=mail
+  sysctl -e kernel.domainname=clrs.eu
+  sed -i -e 's/^search ovh.net/search clrs.eu/' /etc/resolv.conf
+}
+
+# -------------------------------------
+#              MAIN
+# -------------------------------------
+main () {
+  fix_locales
+  fix_timezone
+  set_hostname
+  touch ovh_debian_done
+}
+
+main

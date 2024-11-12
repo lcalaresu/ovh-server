@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#
+# Post-installation Configuration Scripts
+#
+# Docker installation on Debian
+# - Install prerequisites
+# - Install Docker
+# - Configure the Docker service
+
+
+prerequisites () {
+  apt-get --assume-yes install apt-transport-https ca-certificates curl gnupg2 software-properties-common
+  
+  # add the GPG key for the official Docker repository
+  curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
+
+  # Add the Docker repository to APT sources
+  add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+}
+
+
+install_docker () {
+  apt-get --assume-yes update
+  apt-get --assume-yes install docker-ce
+  curl -L https://github.com/docker/compose/releases/download/$(curl -Ls https://www.servercow.de/docker-compose/latest.php)/docker-compose-$(uname -s)-$(uname -m) > /usr/local/bin/docker-compose
+  chmod +x /usr/local/bin/docker-compose
+}
+
+
+configure_docker () {
+  systemctl enable docker
+}
+
+
+main () {
+  prerequisites
+  install_docker
+  configure_docker
+  touch deb_docker_done
+}
+
+
+main

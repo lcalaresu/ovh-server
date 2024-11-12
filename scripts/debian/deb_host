@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+#
+# Post-installation Configuration Scripts
+#
+# Common Debian based host tasks
+# - Install base packages
+# - User parameters
+
+WEBMIN_DEB_PATH="http://clrseubdgt.cluster021.hosting.ovh.net/webmin_1.900_all.deb"
+
+download_to () {	
+  [ $# -ne 2 ] && echo "download_to: 2 arguments needed" && return 1
+  [ ! -e "$2" ] && mkdir -p "$2"
+  
+  dst_filename=$( basename "$1" )
+  dst_filepath="$2/$dst_filename"
+  
+  if [ -e "${dst_filepath}" ]; then
+    mv "${dst_filepath}" "${dst_filepath}.old"
+  fi
+  wget -P "$2" "$1"
+  
+  if [ $? -eq 0 -a -f "${dst_filepath}.old" ]; then
+    rm -f "${dst_filepath}.old"
+    
+  elif [ $? -ne 0 -a -f "${dst_filepath}.old" ]; then
+    mv "${dst_filepath}.old" "${dst_filepath}"
+  
+  fi
+}
+
+
+upgrade_os () {
+  apt-get --assume-yes update
+  apt-get --assume-yes upgrade
+}
+
+
+cleanup_packages () {
+  apt-get --assume-yes remove sudo bind9
+  rm -f /etc/systemd/system/bind9.service
+  apt-get --assume-yes autoremove
+}
+
+
+install_base_packages () {
+  apt-get --assume-yes install bash-completion ca-certificates curl
+  apt-get --assume-yes install git lm-sensors vim
+  apt-get --assume-yes install libnet-ssleay-perl libauthen-pam-perl libio-pty-perl apt-show-versions python
+}
+
+
+install_ntp () {
+  apt-get --assume-yes install ntp
+  sed -i -e 's/^#server ntp.your-provider.example/pool 0.fr.pool.ntp.org/' /etc/ntp.conf
+}
+
+
+install_webmin () {
+  wget ${WEBMIN_DEB_PATH}
+  dpkg -i webmin_1.900_all.deb
+  rm -f webmin_1.900_all.deb
+}
+
+
+configure_bash () {
+  if [ -n "${KS_URI_ROOT}" ]; then
+    # in bach.bashrc : add call to /etc/bashrc.d/* if not already done
+  	if ! grep -q '/etc/bashrc.d/*' /etc/bash.bashrc; then
+      # -----------------------
+      cat <<EOF >> /etc/bash.bashrc
+# execute all bashrc.d files
+if [ -d /etc/bashrc.d ]; then
+  for i in /etc/bashrc.d/*.sh; do
+    if [ -r $i ]; then
+      . $i
+    fi
+  done
+  unset i
+fi
+EOF
+      # -----------------------
+  	fi
+  	
+    # copy system-level bashrc.d files 
+    download_to $KS_URI_ROOT/conf/debian/bashrc.d/aliases.sh /etc/bashrc.d/
+    download_to $KS_URI_ROOT/conf/debian/bashrc.d/colors.sh /etc/bashrc.d/
+    download_to $KS_URI_ROOT/conf/debian/basrc.dh/env.sh /etc/bashrc.d/
+    download_to $KS_URI_ROOT/conf/debian/bashrc.d/functions.sh /etc/bashrc.d/
+    download_to $KS_URI_ROOT/conf/debian/basrc.dh/history.sh /etc/bashrc.d/
+
+    # copy new skel files
+    download_to $KS_URI_ROOT/conf/skel/.bashrc /etc/skel
+    download_to $KS_URI_ROOT/conf/skel/.profile /etc/skel
+    
+    # copy skel files to existing users 
+    cp /etc/skel/.bashrc /root/
+    cp /etc/skel/.profile /root/
+    
+    touch configure_bash_done
+  else
+    touch error_ks_uri_host_empty
+  fi
+}
+
+
+set_defaults () {
+  update-alternatives --set editor /usr/bin/vim.basic
+}
+
+
+main () {
+  upgrade_os
+  cleanup_packages
+  install_base_packages
+  install_ntp
+  install_webmin
+  configure_bash
+  set_defaults
+  touch deb_host_done
+}
+
+
+main

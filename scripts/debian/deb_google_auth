@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#
+# Post-installation application installation
+#
+# Application installation on Debian
+# - Install libam google authenticator
+
+
+# Remote scripts URI root
+LIBPAM_DEB_PATH="http://calaresuki.cluster021.hosting.ovh.net/libpam-google-authenticator_20181228_amd64.deb"
+
+# Install and configure Google Authentication PAM for ssh
+install_google_auth () {
+  DEB_FILENAME=$( basename ${LIBPAM_DEB_PATH} )
+
+  # Download and install the libpam GoogleAuthenticator (version 20181228)
+  wget ${LIBPAM_DEB_PATH} && dpkg -i ${DEB_FILENAME} && rm -f ${DEB_FILENAME}
+
+  # Install dependencies if needed
+  apt-get --assume-yes install -f
+}
+
+
+main () {
+  install_google_auth
+  touch deb_google_auth_done
+}
+
+
+main
